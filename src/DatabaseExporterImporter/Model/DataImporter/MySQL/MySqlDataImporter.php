@@ -28,6 +28,8 @@ class MySqlDataImporter extends DataImporter
      */
     public function import()
     {
+        $this->connection->exec('SET FOREIGN_KEY_CHECKS = 0');
+
         foreach ($this->dataParser->getTables() as $table) {
             $sql = 'INSERT INTO ' . $table->getName();
             $sqlColumns = [];
