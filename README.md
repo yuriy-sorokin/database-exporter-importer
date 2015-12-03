@@ -1,6 +1,10 @@
 Database data exporter/importer
 =============
 
+[![License](https://poser.pugx.org/yuriy-sorokin/database-exporter-importer/license)](https://packagist.org/packages/yuriy-sorokin/database-exporter-importer)
+[![Latest Stable Version](https://poser.pugx.org/yuriy-sorokin/database-exporter-importer/v/stable)](https://packagist.org/packages/yuriy-sorokin/database-exporter-importer)
+[![Total Downloads](https://poser.pugx.org/yuriy-sorokin/database-exporter-importer/downloads)](https://packagist.org/packages/yuriy-sorokin/database-exporter-importer)
+
 The purpose of the package is to export/import certain data records from a database.
 Say, you have a bunch of related DB tables, which represent your user module.
 So, you want to copy a user with all the related information to another database, which already has tables created.
