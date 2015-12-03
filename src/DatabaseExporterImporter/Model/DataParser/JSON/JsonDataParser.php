@@ -1,7 +1,6 @@
 <?php
 namespace DatabaseExporterImporter\Model\DataParser\JSON;
 
-use DatabaseExporterImporter\Entity\Column;
 use DatabaseExporterImporter\Entity\Table;
 use DatabaseExporterImporter\Model\DataParser\DataParser;
 
@@ -12,9 +11,39 @@ use DatabaseExporterImporter\Model\DataParser\DataParser;
 class JsonDataParser extends DataParser
 {
     /**
+     * @var \DatabaseExporterImporter\Model\DataParser\JSON\JsonColumnsCreator
+     */
+    private $columnsCreator;
+    /**
+     * @var \DatabaseExporterImporter\Model\DataParser\JSON\JsonDataRowsCreator
+     */
+    private $dataRowsCreator;
+    /**
      * @var array
      */
     private $parsedData;
+
+    /**
+     * @param \DatabaseExporterImporter\Model\DataParser\JSON\JsonColumnsCreator $columnsCreator
+     * @return $this
+     */
+    public function setColumnsCreator(JsonColumnsCreator $columnsCreator)
+    {
+        $this->columnsCreator = $columnsCreator;
+
+        return $this;
+    }
+
+    /**
+     * @param \DatabaseExporterImporter\Model\DataParser\JSON\JsonDataRowsCreator $dataRowsCreator
+     * @return $this
+     */
+    public function setDataRowsCreator(JsonDataRowsCreator $dataRowsCreator)
+    {
+        $this->dataRowsCreator = $dataRowsCreator;
+
+        return $this;
+    }
 
     /**
      * @throws \InvalidArgumentException
@@ -37,16 +66,23 @@ class JsonDataParser extends DataParser
     {
         $tables = [];
 
-        foreach ($this->parsedData as $tableName => $tableColumns) {
+        foreach ($this->parsedData as $tableName => $tableData) {
             $table = new Table($tableName);
 
-            if (false === is_array($tableColumns)) {
-                throw new \InvalidArgumentException('The data structure is incorrect: table columns must be an array.');
+            if (false === is_array($tableData)) {
+                throw new \InvalidArgumentException('The data structure is incorrect.');
             }
 
-            foreach ($tableColumns as $columnName => $columnValue) {
-                $column = new Column($columnName);
-                $table->addColumn($column->setValue($columnValue));
+            if (false === array_key_exists('columns', $tableData)) {
+                throw new \InvalidArgumentException("The data structure is incorrect: 'columns' key is absent.");
+            }
+
+            foreach ($this->columnsCreator->getColumns($tableData['columns']) as $column) {
+                $table->addColumn($column);
+            }
+
+            foreach ($this->dataRowsCreator->getDataRows($tableData['data_rows']) as $dataRow) {
+                $table->addDataRow($dataRow);
             }
 
             $tables[] = $table;

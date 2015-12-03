@@ -2,6 +2,7 @@
 namespace DatabaseExporterImporter\Test\Unit\Entity;
 
 use DatabaseExporterImporter\Entity\Column;
+use DatabaseExporterImporter\Entity\DataRow;
 use DatabaseExporterImporter\Entity\Table;
 
 /**
@@ -18,14 +19,16 @@ class TableTest extends \PHPUnit_Framework_TestCase
         static::assertCount(0, $subject->getColumns());
 
         $columnName = mt_rand();
-        $columnValue = mt_rand();
         $column = new Column($columnName);
-        $column->setValue($columnValue);
         $subject->addColumn($column);
 
         static::assertCount(1, $subject->getColumns());
         $firstColumn = reset($subject->getColumns());
         static::assertSame($columnName, $firstColumn->getName());
-        static::assertSame($columnValue, $firstColumn->getValue());
+
+        $dataRow = new DataRow();
+        static::assertCount(0, $subject->getDataRows());
+        $subject->addDataRow($dataRow);
+        static::assertCount(1, $subject->getDataRows());
     }
 }

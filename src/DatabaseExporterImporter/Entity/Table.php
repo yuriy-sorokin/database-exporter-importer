@@ -12,6 +12,10 @@ class Table
      */
     private $columns = [];
     /**
+     * @var \DatabaseExporterImporter\Entity\DataRow[]
+     */
+    private $dataRows = [];
+    /**
      * @var string
      */
     private $name;
@@ -22,6 +26,25 @@ class Table
     public function __construct($name)
     {
         $this->name = $name;
+    }
+
+    /**
+     * @param \DatabaseExporterImporter\Entity\DataRow $dataRow
+     * @return $this
+     */
+    public function addDataRow(DataRow $dataRow)
+    {
+        $this->dataRows[] = $dataRow;
+
+        return $this;
+    }
+
+    /**
+     * @return DataRow[]
+     */
+    public function getDataRows()
+    {
+        return $this->dataRows;
     }
 
     /**
@@ -38,6 +61,7 @@ class Table
      */
     public function addColumn(Column $column)
     {
+        $column->setTable($this);
         $this->columns[$column->getName()] = $column;
 
         return $this;

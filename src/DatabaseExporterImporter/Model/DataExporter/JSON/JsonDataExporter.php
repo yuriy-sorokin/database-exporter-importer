@@ -10,7 +10,39 @@ use DatabaseExporterImporter\Model\DataExporter\DataExporter;
 class JsonDataExporter extends DataExporter
 {
     /**
+     * @var \DatabaseExporterImporter\Model\DataExporter\JSON\JsonTableColumnsExporter
+     */
+    private $columnsExporter;
+    /**
+     * @var \DatabaseExporterImporter\Model\DataExporter\JSON\JsonTableDataRowsExporter
+     */
+    private $dataRowsExporter;
+
+    /**
+     * @param \DatabaseExporterImporter\Model\DataExporter\JSON\JsonTableColumnsExporter $columnsExporter
+     * @return $this
+     */
+    public function setColumnsExporter(JsonTableColumnsExporter $columnsExporter)
+    {
+        $this->columnsExporter = $columnsExporter;
+
+        return $this;
+    }
+
+    /**
+     * @param \DatabaseExporterImporter\Model\DataExporter\JSON\JsonTableDataRowsExporter $dataRowsExporter
+     * @return $this
+     */
+    public function setDataRowsExporter(JsonTableDataRowsExporter $dataRowsExporter)
+    {
+        $this->dataRowsExporter = $dataRowsExporter;
+
+        return $this;
+    }
+
+    /**
      * @throws \LogicException
+     * @throws \RuntimeException
      * @return string
      */
     public function getData()
@@ -22,11 +54,10 @@ class JsonDataExporter extends DataExporter
         $data = [];
 
         foreach ($this->dataProvider->getTables() as $table) {
-            $data[$table->getName()] = [];
-
-            foreach ($table->getColumns() as $column) {
-                $data[$table->getName()][$column->getName()] = $column->getValue();
-            }
+            $data[$table->getName()] = [
+                'columns'   => $this->columnsExporter->getTableColumns($table),
+                'data_rows' => $this->dataRowsExporter->getDataRows($table)
+            ];
         }
 
         return json_encode($data);

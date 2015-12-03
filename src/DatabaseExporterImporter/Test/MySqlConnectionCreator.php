@@ -10,7 +10,7 @@ class MySqlConnectionCreator
     /**
      * @return \PDO
      */
-    public function getConnection()
+    public function createConnection()
     {
         return new \PDO('mysql:dbname=exporter_importer;host=localhost', 'root', '1q2w3e');
     }

@@ -1,7 +1,6 @@
 <?php
 namespace DatabaseExporterImporter\Model\DataProvider\MySQL;
 
-use DatabaseExporterImporter\Entity\Column;
 use DatabaseExporterImporter\Entity\Table;
 use DatabaseExporterImporter\Model\DataProvider\DataProvider;
 
@@ -15,47 +14,14 @@ class MySqlDataProvider extends DataProvider
      * @var \PDO
      */
     private $connection;
-    /**
-     * @var \DatabaseExporterImporter\Entity\Table[]
-     */
-    private $tables = [];
 
     /**
      * @param \PDO $connection
-     */
-    public function __construct(\PDO $connection)
-    {
-        $this->connection = $connection;
-    }
-
-    /**
-     * @throws \RuntimeException
-     * @return \DatabaseExporterImporter\Entity\Table[]
-     */
-    public function getTables()
-    {
-        $this
-            ->setTables()
-            ->setTablesContent();
-
-        return $this->tables;
-
-    }
-
-    /**
-     * @throws \RuntimeException
      * @return $this
      */
-    private function setTablesContent()
+    public function setConnection(\PDO $connection)
     {
-        foreach ($this->tables as $table) {
-            foreach ($this->getTableData($table) as $columns) {
-                foreach ((array)$columns as $columnName => $columnValue) {
-                    $column = new Column($columnName);
-                    $table->addColumn($column->setValue($columnValue));
-                }
-            }
-        }
+        $this->connection = $connection;
 
         return $this;
     }
@@ -63,44 +29,52 @@ class MySqlDataProvider extends DataProvider
     /**
      * @param \DatabaseExporterImporter\Entity\Table $table
      * @throws \RuntimeException
-     * @return \PDOStatement
+     * @return array
      */
-    private function getTableData(Table $table)
+    protected function getTableData(Table $table)
     {
-        $statement = $this->connection->prepare('SELECT * FROM ' . $table->getName());
-        $statement->setFetchMode(\PDO::FETCH_ASSOC);
-        $this->executeStatement($statement);
+        $sql = 'SELECT * FROM ' . $table->getName() . ' WHERE ';
+        $sqlAndParts = ['1 = 1'];
+        $queryParams = [];
 
-        return $statement;
+        if (null !== $this->primaryTableName) {
+            if ($table->getName() === $this->primaryTableName) {
+                $sqlAndParts[] = $this->primaryKeyColumn . ' = :value';
+                $queryParams[':value'] = $this->primaryKey;
+            } else {
+                foreach ($this->foreignValueProvider->setTable($table)->setTables($this->tables)
+                                                    ->getForeignKeyValues() as $columnName => $columnValues) {
+                    $conditionValuesStubs = [];
+
+                    foreach ((array)$columnValues as $counter => $columnValue) {
+                        $conditionValuesStubs[] = ':' . $columnName . $counter;
+                        $queryParams[':' . $columnName . $counter] = $columnValue;
+                    }
+
+                    $sqlAndParts[] = $columnName . ' IN(' . implode(', ', $conditionValuesStubs) . ')';
+                }
+            }
+        }
+
+        return $this->getQueryResult($sql . implode(' AND ', $sqlAndParts), $queryParams);
     }
 
     /**
-     * @param \PDOStatement $statement
+     * @param string $query
+     * @param array  $queryParams
      * @throws \RuntimeException
+     * @return array
      */
-    private function executeStatement(\PDOStatement $statement)
+    private function getQueryResult($query, array $queryParams)
     {
-        $statement->execute();
-        $errorInfo = $statement->errorInfo();
+        $statement = $this->connection->prepare($query);
+        $statement->execute($queryParams);
+        $errors = $statement->errorInfo();
 
-        if (null !== $errorInfo[2]) {
-            throw new \RuntimeException($errorInfo[2]);
-        }
-    }
-
-    /**
-     * @throws \RuntimeException
-     * @return $this
-     */
-    private function setTables()
-    {
-        $statement = $this->connection->prepare("SHOW TABLES LIKE '" . $this->tablePrefix . "%'");
-        $this->executeStatement($statement);
-
-        foreach ($statement as $item) {
-            $this->tables[] = new Table($item[0]);
+        if (null !== $errors[2]) {
+            throw new \RuntimeException($errors[2]);
         }
 
-        return $this;
+        return $statement->fetchAll(\PDO::FETCH_ASSOC);
     }
 }

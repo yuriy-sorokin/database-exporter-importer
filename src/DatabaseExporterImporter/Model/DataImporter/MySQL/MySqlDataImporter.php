@@ -1,6 +1,7 @@
 <?php
 namespace DatabaseExporterImporter\Model\DataImporter\MySQL;
 
+use DatabaseExporterImporter\Entity\Table;
 use DatabaseExporterImporter\Model\DataImporter\DataImporter;
 
 /**
@@ -16,39 +17,39 @@ class MySqlDataImporter extends DataImporter
 
     /**
      * @param \PDO $connection
+     * @return $this
      */
-    public function __construct(\PDO $connection)
+    public function setConnection(\PDO $connection)
     {
         $this->connection = $connection;
+
+        return $this;
     }
 
     /**
+     * @param \DatabaseExporterImporter\Entity\Table        $table
+     * @param \DatabaseExporterImporter\Entity\DataColumn[] $values
+     * @return int
      * @throws \RuntimeException
-     * @throws \Exception
      */
-    public function import()
+    protected function insertRecord(Table $table, array $values)
     {
-        $this->connection->exec('SET FOREIGN_KEY_CHECKS = 0');
+        $sqlValues = [];
 
-        foreach ($this->dataParser->getTables() as $table) {
-            $sql = 'INSERT INTO ' . $table->getName();
-            $sqlColumns = [];
-            $sqlValues = [];
-
-            foreach ($table->getColumns() as $column) {
-                $sqlColumns[] = $column->getName();
-                $sqlValues[] = $column->getValue();
-            }
-
-            $sql .= ' (' . implode(', ', $sqlColumns) . ')';
-            $sql .= ' VALUES(' . substr(str_repeat('?, ', count($sqlValues)), 0, -2) . ')';
-
-            $statement = $this->connection->prepare($sql);
-
-            if (false === $statement->execute($sqlValues)) {
-                $errors = $statement->errorInfo();
-                throw new \RuntimeException($errors[2]);
-            }
+        foreach ($values as $value) {
+            $sqlValues[$value->getName()] = $value->getValue();
         }
+
+        $statement = $this->connection->prepare(
+            'INSERT INTO ' . $table->getName() . ' (' . implode(', ', array_keys($sqlValues)) . ') ' .
+            'VALUES(' . substr(str_repeat('?, ', count($sqlValues)), 0, -2) . ')'
+        );
+
+        if (false === $statement->execute(array_values($sqlValues))) {
+            $errors = $statement->errorInfo();
+            throw new \RuntimeException($errors[2]);
+        }
+
+        return $this->connection->lastInsertId();
     }
 }
